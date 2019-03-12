@@ -59,6 +59,7 @@ void twi_init(){
     /* 2) Use pin 0 on the micro:bit as SCL; 30 as SDA. */
 
     /* 3) Use normal I2C speed, i.e. 100 kHz operation. */
+    GPIO->PIN_CNF[0] = ()
 
 }
 

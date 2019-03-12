@@ -2,10 +2,10 @@
 #include "accel.h"
 #include "twi.h"
 
-#define ACCEL_ADDR          __FILL_THIS_OUT_
-#define ACCEL_DATA_REG      __FILL_THIS_OUT_
-#define ACCEL_CTRL_REG_1    __FILL_THIS_OUT_
-#define ACCEL_CTRL_REG_4    __FILL_THIS_OUT_
+#define ACCEL_ADDR          0x00
+#define ACCEL_DATA_REG      0x26
+#define ACCEL_CTRL_REG_1    0x20
+#define ACCEL_CTRL_REG_4    0x23
 
 #define ACCEL_100_HZ_HR_ON  0x57
 #define ACCEL_HR_SELECT     0x08
