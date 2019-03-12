@@ -59,7 +59,15 @@ void twi_init(){
     /* 2) Use pin 0 on the micro:bit as SCL; 30 as SDA. */
 
     /* 3) Use normal I2C speed, i.e. 100 kHz operation. */
-    GPIO->PIN_CNF[0] = ()
+    
+    GPIO->PIN_CNF[0]= 0 | (6 << 8); //input | drive strength =S0D1
+    GPIO->PIN_CNF[30]= 0 | (6 << 8);
+
+    TWI0->PSELSCL = (1 << 30);
+    TWI0->PSELSDA = (1 << 0);
+
+    TWI0->FREQUENCY = 0x01980000; //hentet fra frequency table
+
 
 }
 
@@ -75,6 +83,12 @@ void twi_multi_read(
     /* 1) Write the register address you want to the slave */
     /*    device. Busy-wait until the register address has */
     /*    been sent by the TWI peripheral. */
+
+	TWI0->ADDRESS=slave_address;
+    TWI0->STARTRX=1;
+    TWI0>TXDSENT=0;
+    TWI0->TXD=start_register;
+    while(!TWI0->TXDSENT);
 
 
 
