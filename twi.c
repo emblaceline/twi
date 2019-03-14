@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "twi.h"
 #include "gpio.h"
+#include "uart.h"
 
 #define TWI0 ((NRF_TWI_REG*)0x40003000)
 
@@ -60,11 +61,14 @@ void twi_init(){
 
     /* 3) Use normal I2C speed, i.e. 100 kHz operation. */
     
-    GPIO->PIN_CNF[0]= 0 | (6 << 8); //input | drive strength =S0D1
-    GPIO->PIN_CNF[30]= 0 | (6 << 8);
+    GPIO->PIN_CNF[0]= 0 | (6 << 8) | (3 << 2); //input | drive strength =S0D1
+    GPIO->PIN_CNF[30]= 0 | (6 << 8) | (3 << 2);
 
-    TWI0->PSELSCL = (1 << 30);
-    TWI0->PSELSDA = (1 << 0);
+    TWI0->RXDREADY = 0;
+    TWI0->TXDSENT = 0;
+    TWI0->ERROR=0;
+    TWI0->PSELSCL = 30;
+    TWI0->PSELSDA = 0;
 
     TWI0->FREQUENCY = 0x01980000; //hentet fra frequency table
 
@@ -77,6 +81,7 @@ void twi_multi_read(
 		int registers_to_read,
 		uint8_t * data_buffer
 		){
+	uart_print_int(2);
 
     /* Your task: */
 
@@ -85,12 +90,12 @@ void twi_multi_read(
     /*    been sent by the TWI peripheral. */
 
 	TWI0->ADDRESS=slave_address;
-    TWI0->STARTRX=1;
-    TWI0>TXDSENT=0;
+	TWI0->TXDSENT=0;
+    TWI0->STARTTX=1;
     TWI0->TXD=start_register;
     while(!TWI0->TXDSENT);
 
-
+    
 
     /* As explained in the guidance lecture, these "no-operation" */
     /* instructions are necessary because of a timing issue between */
@@ -107,10 +112,24 @@ void twi_multi_read(
     /*    supply. This amounts to generating a repeated start */
     /*    condition, and reading the amount of registers you */
     /*    want. */
+    TWI0->STARTRX=1;
+    TWI0->RXDREADY=0;
+    
+
+    for(int i = 0; i < registers_to_read-1; i++){
+		TWI0->RXDREADY = 0;
+		data_buffer[i]= TWI0->RXD;
+		while(!TWI0->RXDREADY);
+	}
+	
+	TWI0->STOP = 1;
+
 
     /* 2) Remember that you need to generate a NACK at */
     /*    the of the sequence, read the TWI section to figure */
     /*    out how to do this. */
+    while(!TWI0->RXDREADY);
+    data_buffer[registers_to_read-1]=TWI0->RXD;
 
 }
 
