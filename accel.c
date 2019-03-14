@@ -2,8 +2,8 @@
 #include "accel.h"
 #include "twi.h"
 
-#define ACCEL_ADDR          0x00
-#define ACCEL_DATA_REG      0x26
+#define ACCEL_ADDR          0b0011001
+#define ACCEL_DATA_REG      0x28
 #define ACCEL_CTRL_REG_1    0x20
 #define ACCEL_CTRL_REG_4    0x23
 
@@ -32,6 +32,7 @@ void accel_read_x_y_z(int * p_data_buffer){
     /*    You do not need to apply any transformations to */
     /*    the data that you read; this is already done */
     /*    below. */
+    twi_multi_read(ACCEL_ADDR,ACCEL_DATA_REG, 6, raw_data);
 
     int16_t x_accel, y_accel, z_accel;
 
@@ -50,7 +51,7 @@ void accel_read_x_y_z(int * p_data_buffer){
         z_accel |= 0xf000;
     }
 
-	p_data_buffer[0] = (int)x_accel;
-	p_data_buffer[1] = (int)y_accel;
-	p_data_buffer[2] = (int)z_accel;
+    p_data_buffer[0] = (int)x_accel;
+    p_data_buffer[1] = (int)y_accel;
+    p_data_buffer[2] = (int)z_accel;
 }
