@@ -1,7 +1,6 @@
 #include <stdint.h>
 #include "twi.h"
 #include "gpio.h"
-#include "uart.h"
 
 #define TWI0 ((NRF_TWI_REG*)0x40003000)
 
@@ -49,30 +48,23 @@ typedef struct {
 } NRF_TWI_REG;
 
 void twi_init(){
+	// SCL pin, S0D1, Input, Use pullup
+	GPIO->PIN_CNF[0] = (1 << 10) | (1 << 9) | (1 << 3) | (1 << 2);
+	// SDA pin, S0D1, Input, Use pullup
+	GPIO->PIN_CNF[30] = (1 << 10) | (1 << 9) | (1 << 3) | (1 << 2);
 
-    /* Your task: */
+	TWI0->RXDREADY = 0;
+	TWI0->TXDSENT = 0;
+	TWI0->ERROR = 0;
 
-    /* 1) To use TWI, you must configure the SDA- and SCL lines in */
-    /*    the GPIO module. Read the TWI section in the nRF51822 */
-    /*    datasheet to determine which direction the pins should */
-    /*    have, as well as what drive strength you should apply. */
+	TWI0->PSELSCL = 0;
+	TWI0->PSELSDA = 30;
 
-    /* 2) Use pin 0 on the micro:bit as SCL; 30 as SDA. */
+	// 100 kHz
+	TWI0->FREQUENCY = 0x01980000;
 
-    /* 3) Use normal I2C speed, i.e. 100 kHz operation. */
-    
-    GPIO->PIN_CNF[0]= 0 | (6 << 8) | (3 << 2); //input | drive strength =S0D1
-    GPIO->PIN_CNF[30]= 0 | (6 << 8) | (3 << 2);
-
-    TWI0->RXDREADY = 0;
-    TWI0->TXDSENT = 0;
-    TWI0->ERROR=0;
-    TWI0->PSELSCL = 30;
-    TWI0->PSELSDA = 0;
-
-    TWI0->FREQUENCY = 0x01980000; //hentet fra frequency table
-
-
+	// 5: Enable, 0: Disable
+	TWI0->ENABLE = 5;
 }
 
 void twi_multi_read(
@@ -81,56 +73,31 @@ void twi_multi_read(
 		int registers_to_read,
 		uint8_t * data_buffer
 		){
-	uart_print_int(2);
+	TWI0->ADDRESS = slave_address;
+	TWI0->STARTTX = 1;
 
-    /* Your task: */
+	TWI0->TXDSENT = 0;
+	TWI0->TXD = start_register;
+	while(!TWI0->TXDSENT);
 
-    /* 1) Write the register address you want to the slave */
-    /*    device. Busy-wait until the register address has */
-    /*    been sent by the TWI peripheral. */
-
-	TWI0->ADDRESS=slave_address;
-	TWI0->TXDSENT=0;
-    TWI0->STARTTX=1;
-    TWI0->TXD=start_register;
-    while(!TWI0->TXDSENT);
-
-    
-
-    /* As explained in the guidance lecture, these "no-operation" */
-    /* instructions are necessary because of a timing issue between */
-    /* nRF51822 and the LSM303AGR. The reason we use inline assembly */
-    /* is to always force the compiler to keep these instructions, */
-    /* regardless of optimization level. */
     for(int i = 0; i < 10; i++){
         __asm("nop");
     }
 
-    /* Your task: */
+	TWI0->RXDREADY = 0;
+	TWI0->STARTRX = 1;
 
-    /* 1) Read back the register that you asked the slave to */
-    /*    supply. This amounts to generating a repeated start */
-    /*    condition, and reading the amount of registers you */
-    /*    want. */
-    TWI0->STARTRX=1;
-    TWI0->RXDREADY=0;
-    
-
-    for(int i = 0; i < registers_to_read-1; i++){
-		TWI0->RXDREADY = 0;
-		data_buffer[i]= TWI0->RXD;
+	for(int i = 0; i < registers_to_read - 1; i++){
 		while(!TWI0->RXDREADY);
+		TWI0->RXDREADY = 0;
+
+		data_buffer[i] = TWI0->RXD;
 	}
-	
+
 	TWI0->STOP = 1;
+	while(!TWI0->RXDREADY);
 
-
-    /* 2) Remember that you need to generate a NACK at */
-    /*    the of the sequence, read the TWI section to figure */
-    /*    out how to do this. */
-    while(!TWI0->RXDREADY);
-    data_buffer[registers_to_read-1]=TWI0->RXD;
-
+	data_buffer[registers_to_read - 1] = TWI0->RXD;
 }
 
 void twi_multi_write(
